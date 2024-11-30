@@ -5,11 +5,20 @@
 #include <chrono>
 using namespace std;
 
-class queue {
-private:
+class object {
+protected:
     int* values;
-    int k;
-    int max_size;
+    int k, max_size;
+public:
+    virtual int get() = 0;
+    virtual void add(int x) = 0;
+    virtual int pop() = 0;
+    virtual void print() = 0;
+    virtual bool isEmpty() = 0;
+};
+
+class queue: public object {
+private:
     int u;
 public:
     queue(int max_size) {
@@ -18,35 +27,35 @@ public:
         k = 0;
         u = 0;
     }
-    int get() {
+    int get() override{
         return values[u];
     }
-    void add(int x) {
+    void add(int x) override {
         if (k < max_size) {
             values[(k + u) % max_size] = x;
             k++;
         }
     }
-    int pop() {
+    int pop()override {
         int x = values[u];
         u++;
         if (u == max_size)u = 0;
         k--;
         return x;
     }
-    void print() {
+    void print()override {
         cout << "Состав очереди: ";
         for (int i = 0; i < k; i++) {
             cout << values[u + i] << " ";
         }
         cout << endl;
     }
-    bool isEmpty() {
+    bool isEmpty()override {
         return k == 0;
     }
 };
 
-class stack {
+class stack: public object{
 private:
     int* values;
     int k;
@@ -57,16 +66,16 @@ public:
         values = new int[this->max_size];
         k = 0;
     }
-    int get() {
+    int get() override {
         return values[k-1];
     }
-    void add(int x) {
+    void add(int x) override {
         if (k < this->max_size) {
             values[k] = x;
             k++;
         }
     }
-    int pop() {
+    int pop() override {
         if (!isEmpty()) {
             k--;
             int x = values[k];
@@ -74,13 +83,13 @@ public:
         }
 
     }
-    void print() {
+    void print() override {
         for (int i = 0; i < k; i++) {
             cout << values[i] << " ";
         }
         cout << endl;
     }
-    bool isEmpty() {
+    bool isEmpty() override {
         return k == 0;
     }
 };
@@ -126,14 +135,70 @@ public:
     }
 
 
-
     void print_connection() {
         for (int i = 0; i < n_vertex; i++) {
             cout << vertex[i][0] << " -> " << vertex[i][1] << endl;
         }
     }
 
-    void bfs(){
+    void search_start() { //Определение, какая структура будет передаваться в поиск
+        int choice = 0;
+        cout << "Введите тип, которым надо обходить граф" << endl;
+        cout << "1. Обход в ширину" << endl << "2. Обход в глубину" << endl;
+        while (choice < 1 or choice >2) {
+            cin >> choice;
+        }
+        object* object;
+        if (choice == 1) {
+            object = new queue(n_points);
+        }
+        else object = new stack(n_points);
+
+        search_body(object);
+    }
+    void search_body(object* object) { //Реализация универсального обхода на основе переданной структуры
+        int xk;
+        cout << "Введите начальную вершину для обхода: "; cin >> xk;
+        string carcas = "";
+        used = new int[n_points];
+
+        used[0] = xk;
+        n_used = 1;
+        
+        object->add(xk);
+        while (!object->isEmpty()) {
+            object->print();
+            int x = object->get();
+            bool newVertex = false;
+            for (int i = 0; i < n_vertex; i++) {
+                int y = xk;
+                if (vertex[i][0] == x) {
+                    y = vertex[i][1];
+                }
+                else if (vertex[i][1] == x) {
+                    y = vertex[i][0];
+                }
+                if (!check_in_used(y)) {
+                    newVertex = true;
+                    add_used(y);
+                    object->add(y);
+                    carcas += to_string(x) + " -> " + to_string(y) + "\n";
+                    break;
+                }
+            }
+            if (!newVertex) {
+                object->pop();
+            }
+        }
+        cout << "Каркас:" << endl << carcas << endl;
+
+        cout << "USED:" << endl;
+        for (int i = 0; i < n_used; i++) {
+            cout << used[i] << " ";
+        }
+        cout << endl;
+    }
+    void bfs(){ //Обход в ширину
         int xk;
         cout << "Введите начальную вершину для обхода в ширину: "; cin >> xk;
         string carcas = "";
@@ -163,9 +228,14 @@ public:
             
         }
         cout << "Каркас:" << endl<< carcas << endl;
+        cout << "USED:" << endl;
+        for (int i = 0; i < n_used; i++) {
+            cout << used[i] << " ";
+        }
+        cout << endl;
     }
 
-    void dfs() {
+    void dfs() { //Обход в глубину
         int xk;
         cout << "Введите начальную вершину для обхода в глубину: "; cin >> xk;
         string carcas = "";
@@ -202,7 +272,12 @@ public:
 
         }
         cout << "Каркас:" << endl << carcas << endl;
-    }
+        cout << "USED:" << endl;
+        for (int i = 0; i < n_used; i++) {
+            cout << used[i] << " ";
+        }
+        cout << endl;
+    } 
 
     void add_used(int k) {
         int* new_used = new int[n_used + 1];
@@ -246,6 +321,7 @@ int main()
     test.addVertex(5, 1);
     test.addVertex(6, 1);
     test.addVertex(7, 1);
+    test.search_start();
     test.dfs();
     test.print_connection();
     //test.start_fire_while();
